@@ -55,6 +55,10 @@ class InfinityClass {
         String EEP_Read(int part);
         void checkConnetion(void);
         void setLocalIP(void);
+        void UDPReceiver(void);
+        void UDPsender(String data, String remoteIP, uint16_t remotePort);
+        void UDPack(int id, int status);
+        void serializer(String data, String packetRemoteIP, uint16_t packetRemotePort);
     public:
         void begin(String hostname, Debug_t d = NONE);
         void erase();
@@ -68,7 +72,6 @@ class InfinityClass {
         void receive();
         void property();
         void update();
-        
 };
 
 extern InfinityClass Infinity;

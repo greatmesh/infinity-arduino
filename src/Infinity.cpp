@@ -26,12 +26,21 @@
 #include "Infinity.h"
 #include <ESP8266WiFi.h>
 #include <EEPROM.h>
+#include <WiFiUdp.h>
+#include <ArduinoJson.h>
+
+WiFiUDP Udp;
 
 IPAddress localIP;
+IPAddress remoteIP;
 IPAddress cloudIP;
-int localPort;
+int localPort = 3185;
+int remotePort;
 int cloudPort;
 bool debug, connected, waitConnection = false;
+
+char incomingPacket[256];
+DynamicJsonBuffer jsonBuffer;
 
 //int reg[] = {1};
 
@@ -115,6 +124,7 @@ void InfinityClass::property() {
 void InfinityClass::update() {
     checkConnetion();
     setLocalIP();
+    UDPReceiver();
 }
 
 bool InfinityClass::empty(const char* data) {
@@ -146,8 +156,11 @@ void InfinityClass::checkConnetion(void) {
     if(WiFi.isConnected() && !connected) {
         if(debug) {
             Serial.println("[ OK ]");
-            Serial.printf("Connected to %s, IP address: %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+            Serial.printf("Connected to %s", WiFi.SSID().c_str());
+            if(Udp.begin(localPort)) Serial.printf(", Now listening at: %s:%d [ UDP ]\n", WiFi.localIP().toString().c_str(), localPort);
+            else Serial.println(", Running service ... [ FAILED ]");
         }
+        Udp.begin(localPort);
         connected = true;
         waitConnection = false;
     }
@@ -162,6 +175,52 @@ void InfinityClass::checkConnetion(void) {
 
 void InfinityClass::setLocalIP(void) {
     if (WiFi.localIP() != IPAddress()) localIP = WiFi.localIP();
+}
+
+void InfinityClass::UDPReceiver(void) {
+    int packetSize = Udp.parsePacket();
+    if (packetSize)
+    {
+        int len = Udp.read(incomingPacket, 255);
+        if (len > 0)
+        {
+        incomingPacket[len] = 0;
+        }
+        serializer(incomingPacket, Udp.remoteIP().toString().c_str(), Udp.remotePort());
+    }
+}
+
+void InfinityClass::UDPsender(String data, String remoteIP, uint16_t remotePort) {
+    Udp.beginPacket((char*) remoteIP.c_str(), remotePort);
+    Udp.write((char*) data.c_str());
+    Udp.endPacket();
+}
+
+void InfinityClass::UDPack(int id, int status) {
+    JsonObject& json = jsonBuffer.createObject();
+    json["id"] = id;
+    json["status"] = status;
+    String output;
+    json.printTo(output);
+    UDPsender(output, remoteIP.toString().c_str(), remotePort);
+}
+
+void InfinityClass::serializer(String data, String packetRemoteIP, uint16_t packetRemotePort) {
+    JsonObject& json = jsonBuffer.parseObject(data);
+    if (json.success()) {
+        int id = json["id"];
+        int req = json["req"];
+        switch(req){
+            case 1: 
+                if(remoteIP.fromString(packetRemoteIP)) {
+                    remotePort = packetRemotePort;
+                    UDPack(id, 1);
+                }
+                break;
+            case 2:
+                break;
+        }
+    }
 }
 
 InfinityClass Infinity;
