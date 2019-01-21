@@ -24,9 +24,144 @@
 
 #include "Arduino.h"
 #include "Infinity.h"
+#include <ESP8266WiFi.h>
+#include <EEPROM.h>
 
-void InfinityClass::begin() {
-    // Begin infinity!
+IPAddress localIP;
+IPAddress cloudIP;
+int localPort;
+int cloudPort;
+bool debug, connected, waitConnection = false;
+
+//int reg[] = {1};
+
+void InfinityClass::begin(String hostname, Debug_t d) {
+    EEPROM.begin(4096);
+    if(d) debug = true;
+    else debug = false;
+    if(!debug) WiFi.hostname(hostname);
+    else Serial.printf("\nSet hostname ... %s\n", WiFi.hostname(hostname) ? "[ OK ]" : "[ FAILED ]");
+    if(!debug) WiFi.mode(WIFI_STA);
+    else Serial.printf("Wi-Fi mode set to WIFI_STA ... %s\n", WiFi.mode(WIFI_STA) ? "[ OK ]" : "[ FAILED ]");
+    WiFi.setAutoConnect(true);
+    mode(WIFI); 
+    identify(OPEN);
+    if(empty(WiFi.SSID().c_str()) && empty(WiFi.SSID().c_str())) {
+        if(!debug) WiFi.beginSmartConfig();
+        else Serial.printf("Begin SmartConfig ... %s\n", WiFi.beginSmartConfig() ? "[ OK ]" : "[ FAILED ]");
+    }
+}
+
+void InfinityClass::erase() {
+    ESP.eraseConfig();
+    // More ...
+}
+
+void InfinityClass::id(String id) {
+
+}
+
+void InfinityClass::mode(CommunicationMethod_t m) {
+    switch(m){
+        case 0:
+            // Auto mode
+            break;
+        case 1:
+            //test
+            break;
+        case 2:
+            //test
+            break;
+   }
+}
+
+void InfinityClass::identify(IdentifyMethod_t m, bool status) {
+    switch(m){
+        case 0:
+            break;
+        case 1:
+            //test
+            break;
+        case 2:
+            //test
+            break;
+   }
+}
+
+void InfinityClass::cloud(String url, int port) {
+   
+}
+
+void InfinityClass::auth(String key) {
+   
+}
+
+void InfinityClass::send(String id, String msg) {
+   
+}
+
+void InfinityClass::send(SendDestination_t d, String msg) {
+   
+}
+
+void InfinityClass::receive() {
+   
+}
+
+void InfinityClass::property() {
+   
+}
+
+void InfinityClass::update() {
+    checkConnetion();
+    setLocalIP();
+}
+
+bool InfinityClass::empty(const char* data) {
+    if(strlen(data) == 0) return true;
+    else return false;
+}
+
+void InfinityClass::EEP_Write(int part, String val) {
+    int n = part * 32;
+    for(int i = 0; i < n; i++) {
+        if(sizeof(val) == i) break;
+        EEPROM.write(0x0F + i, val[i]);
+    }
+    EEPROM.commit();
+    EEPROM.end();
+}
+
+String InfinityClass::EEP_Read(int part) {
+    String data;
+    int n = part * 32;
+    for(int i = 0; i < n; i++) {
+        if (char(EEPROM.read(0x0F + i)) == 0) break;
+        data = data + char(EEPROM.read(0x0F + i)); 
+    }  
+    return data; 
+}
+
+void InfinityClass::checkConnetion(void) {
+    if(WiFi.isConnected() && !connected) {
+        if(debug) {
+            Serial.println("[ OK ]");
+            Serial.printf("Connected to %s, IP address: %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+        }
+        connected = true;
+        waitConnection = false;
+    }
+    else if(WiFi.status() != WL_CONNECTED) {
+        connected = false;
+        if (debug && !waitConnection) {
+            waitConnection = true;
+            Serial.printf("Waiting for connect to %s ... ", empty(WiFi.SSID().c_str()) ? "AP" : WiFi.SSID().c_str());
+        }
+    } 
+}
+
+void InfinityClass::setLocalIP(void) {
+    if (WiFi.localIP() != IPAddress()) localIP = WiFi.localIP();
 }
 
 InfinityClass Infinity;

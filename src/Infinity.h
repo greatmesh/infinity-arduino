@@ -26,13 +26,49 @@
 #define Infinity_h
 
 #include "Arduino.h"
+#include <ESP8266WiFi.h>
+
+typedef enum CommunicationMethod 
+{
+    AUTO = 0, WIFI = 1, WIFI_NRF = 2
+} CommunicationMethod_t;
+
+typedef enum IdentifyMethod 
+{
+    OPEN = 0, KEY = 1, MANUAL = 2
+} IdentifyMethod_t;
+
+typedef enum SendDestination 
+{
+    CLOUD = 0, PHONE = 1
+} SendDestination_t;
+
+typedef enum Debug 
+{
+    NONE = 0, DEBUG = 1
+} Debug_t;
 
 class InfinityClass {
     private:
-        // Nothing yet!
+        bool empty(const char* data);
+        void EEP_Write(int part, String val);
+        String EEP_Read(int part);
+        void checkConnetion(void);
+        void setLocalIP(void);
     public:
-        void begin();
-
+        void begin(String hostname, Debug_t d = NONE);
+        void erase();
+        void id(String id);
+        void mode(CommunicationMethod_t m);
+        void identify(IdentifyMethod_t m, bool status = false);
+        void cloud(String url, int port = 3085);
+        void auth(String key);
+        void send(String id, String msg);
+        void send(SendDestination_t d, String msg);
+        void receive();
+        void property();
+        void update();
+        
 };
 
 extern InfinityClass Infinity;
