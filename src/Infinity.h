@@ -27,51 +27,74 @@
 
 #include "Arduino.h"
 #include <ESP8266WiFi.h>
+#include <ArduinoJson.h>
 
-typedef enum CommunicationMethod 
+typedef enum CommunicationMethod
 {
-    AUTO = 0, WIFI = 1, WIFI_NRF = 2
+    AUTO = 0,
+    WIFI = 1,
+    WIFI_NRF = 2
 } CommunicationMethod_t;
 
-typedef enum IdentifyMethod 
+typedef enum IdentifyMethod
 {
-    OPEN = 0, KEY = 1, MANUAL = 2
+    OPEN = 0,
+    KEY = 1,
+    MANUAL = 2
 } IdentifyMethod_t;
 
-typedef enum SendDestination 
+typedef enum SendDestination
 {
-    CLOUD = 0, PHONE = 1
+    CLOUD = 0,
+    DEVICE = 1
 } SendDestination_t;
 
-typedef enum Debug 
+typedef enum Debug
 {
-    NONE = 0, DEBUG = 1
+    NONE = 0,
+    DEBUG = 1
 } Debug_t;
 
-class InfinityClass {
-    private:
-        bool empty(const char* data);
-        void EEP_Write(int part, String val);
-        String EEP_Read(int part);
-        void checkConnetion(void);
-        void setLocalIP(void);
-        void UDPReceiver(void);
-        void UDPsender(String data, String remoteIP, uint16_t remotePort);
-        void UDPack(int id, int status);
-        void serializer(String data, String packetRemoteIP, uint16_t packetRemotePort);
-    public:
-        void begin(String hostname, Debug_t d = NONE);
-        void erase();
-        void id(String id);
-        void mode(CommunicationMethod_t m);
-        void identify(IdentifyMethod_t m, bool status = false);
-        void cloud(String url, int port = 3085);
-        void auth(String key);
-        void send(String id, String msg);
-        void send(SendDestination_t d, String msg);
-        void receive();
-        void property();
-        void update();
+class InfinityClass
+{
+  private:
+    void checkConnetion(void);
+    void checkIdentification(void);
+    void serializer(String data, String packetRemoteIP, uint16_t packetRemotePort);
+    void UDPReceiver(void);
+    void UDPsender(String data, String remoteIP, uint16_t remotePort);
+    void UDPack(int id, int req, int status, JsonObject &data);
+    bool empty(const char *data);
+    void jsonMerge(JsonObject &dest, JsonObject &src);
+    void EEP_Write(int part, String val);
+    String EEP_Read(int part);
+
+  public:
+    void begin(String hostname, Debug_t d = NONE);
+    void erase();
+    void id(String id);
+    void mode(CommunicationMethod_t m);
+    void identify(IdentifyMethod_t m, bool status = false);
+    void identify(IdentifyMethod_t m, const char *key);
+    void cloud(String url, int port = 3085);
+    void auth(String key);
+    void send(String id, String msg);
+    void send(SendDestination_t d, String msg);
+    void receive();
+    void property();
+    void update();
+
+  protected:
+    bool _debug, _stop, _connected, _waitConnection, _identificationCheck,
+        _waitIdentification;
+    int _localPort = 3185, _remotePort, _cloudPort, _identifyMethod, _tryIdentification;
+    int _part[1] = {0};
+    int _0x0F[1] = {0};
+    long int _process[1] = {0};
+    unsigned int _timeout = 5000;
+    char incomingPacket[256];
+    String _identifyKey, _tempSSID, _tempPsk;
+    IPAddress _remoteIP, _cloudIP;
 };
 
 extern InfinityClass Infinity;
